@@ -1,5 +1,10 @@
 Revision history for CGI-Builder-Auth.
 
+0.05 -- 12 July 2004
+	* User and Group factories now operate as objects (they are designed to be
+	  instantiated). Database files are closed and unlocked after each request.
+	  (Bug 987411)
+
 0.04 -- 5 July 2004
 	* Made Context call Group membership methods as instance methods, not 
 		class methods (Bug 984963)

@@ -6,7 +6,7 @@ package CGI::Builder::Auth
 ; use 5.006001
 ; use strict
 
-; our $VERSION = '0.04'
+; our $VERSION = '0.05'
 
 ; use CGI::Builder::Auth::Context
 
@@ -101,6 +101,15 @@ Class|CGI::Builder::Auth::Group> respectively. The F<CBAuthCDBI.pm> example
 shows one possible implementation of alternative User_factroy and Group_factory
 classes (implemented in the CDBI_*.pm files). Please look in the examples
 directory of this distribution and read L<Custom User and Group Classes> below.
+
+B<WARNING:> The default User and Group factories provided with this module are
+not thread-safe. You may have issues using them on a multi-threaded web server
+such as the Windows version of Apache or any version of Apache2. (Apache 1.x
+on Linux should be fine). If you intend to deploy on a multi-threaded platform,
+you should design your own User and Group factories. Also, even on supported 
+platforms you may run into file-locking issues under heavy loads, because only
+one web server process may have the database open at a time. Developers are 
+encouraged to use a SQL database to avoid these issues.
 
 This module can use L<CGI::Builder::Session|CGI::Builder::Session> to track the
 authentication context from one request to the next, so a user can login once

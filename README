@@ -23,7 +23,8 @@ This module requires these other modules and libraries:
 
   Carp
   CGI::Builder  >=  1.11
-  Class::props (OOTools)  >=  1.7 
+  Class::constr (OOTools)  >=  1.75
+  Scalar::Util
   Digest::MD5
   File::Basename
   Test::More

@@ -3,37 +3,39 @@
 
 #########################
 
-use Test::More tests => 20;
+use Test::More tests => 22;
 
 BEGIN { 
 	# Clean up from previous tests
+	unlink('.htpasswd.lock');
 	unlink('.htpasswd');
 	use_ok('CGI::Builder::Auth::User');
 };
 
-my ($user, $user2, @users, %users, @groups, %groups);
+my ($user, $user2, $user_factory, @users, %users, @groups, %groups);
 
 #-------------------------------------------------------------------- 
-# Class Methods
+# Factory Methods
 #-------------------------------------------------------------------- 
-isa_ok(CGI::Builder::Auth::User->_user_admin, 'CGI::Builder::Auth::UserAdmin', '_user_admin');
+isa_ok($user_factory = CGI::Builder::Auth::User->new(), 'CGI::Builder::Auth::User', 'Factory constructor new');
+isa_ok($user_factory->_user_admin, 'CGI::Builder::Auth::UserAdmin', '_user_admin');
 
-@users = CGI::Builder::Auth::User->list;
+@users = $user_factory->list;
 ok(!@users,	'user_list initially empty');
 # ok(!CGI::Builder::Auth::User->exists('bob'), 	"exists class method");
 
-$user = CGI::Builder::Auth::User->load(id => 'bob');
+$user = $user_factory->load(id => 'bob');
 is($user, undef,  	'$user not constructed when does not exist');
 
-$user = CGI::Builder::Auth::User->anonymous;
+$user = $user_factory->anonymous;
 is($user, 'anonymous',  'can create anonymous user');
 
 #-------------------------------------------------------------------- 
 # Add user
 #-------------------------------------------------------------------- 
-$user = CGI::Builder::Auth::User->add({username => 'bob', password => 'password'});
+$user = $user_factory->add({username => 'bob', password => 'password'});
 isa_ok($user, 'CGI::Builder::Auth::User', 	'$user');
-ok(CGI::Builder::Auth::User->load(id => 'bob'), "load after create");
+ok($user_factory->load(id => 'bob'), "load after create");
 
 #-------------------------------------------------------------------- 
 # Object Methods
@@ -46,11 +48,11 @@ is($user->id, 'bob', "id");
 #-------------------------------------------------------------------- 
 # List with multiple users
 #-------------------------------------------------------------------- 
-$user = CGI::Builder::Auth::User->add({username => 'carol', password => 'password'});
+$user = $user_factory->add({username => 'carol', password => 'password'});
 
-@users = CGI::Builder::Auth::User->list;
+@users = $user_factory->list;
 %users = map { $_ => 1 } @users;
-ok(@users, 	"list as class method");
+ok(@users, 	"list");
 ok($users{'bob'} && $users{'carol'},	"user_list complete.");
 
 
@@ -66,19 +68,22 @@ ok($user->password_matches('password'), 	'password matches after unsuspend');
 #-------------------------------------------------------------------- 
 # Add user should fail in these cases
 #-------------------------------------------------------------------- 
-$user = CGI::Builder::Auth::User->add({username => 'bob', password => 'password'});
+$user = $user_factory->add({username => 'bob', password => 'password'});
 ok(!$user, 	"add fails when user exists");
 
-$user = CGI::Builder::Auth::User->add({username => 'anonymous', password => 'password'});
-ok(!$user, 	"cannot 'create' anonymous user");
+$user = $user_factory->add({username => 'anonymous', password => 'password'});
+ok(!$user, 	"cannot 'add' anonymous user");
 
 #-------------------------------------------------------------------- 
 # Delete
 #-------------------------------------------------------------------- 
-$user = CGI::Builder::Auth::User->load(id => 'bob');
+$user = $user_factory->load(id => 'bob');
 ok($user->delete,	"delete as object method");
-ok(CGI::Builder::Auth::User->load(id => 'carol')->delete, 	"delete 'in place'");
-ok(!CGI::Builder::Auth::User->list,	"users deleted successfully");
+ok($user_factory->load(id => 'carol')->delete, 	"delete 'in place'");
+ok(!$user_factory->list,	"users deleted successfully");
 
+$user = undef;
+$user_factory = undef;
+ok(!-f '.htpasswd.lock',	"Database unlocked when unused");
 
 # vim:ft=perl:tw=80:

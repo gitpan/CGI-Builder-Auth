@@ -1,126 +1,149 @@
 package CGI::Builder::Auth::Group
 ; use strict
 
-; our $VERSION = '0.03'
+; our $VERSION = '0.05'
+
+; our $_group_admin;
 
 ; use CGI::Builder::Auth::GroupAdmin
 ; use CGI::Builder::Auth::User
-; use Class::constr { name => 'load', init => 'init' }
+; use Class::constr 
+   ( { name => 'load', init => '_init', copy => 1  }
+   , { name => 'new', init => '_factory' }
+   )
 
 ; use Class::groups
-(	{ name => 'config'
-	, default =>
-		{ DBType  => 'Text' # type of database, one of 'DBM', 'Text', or 'SQL'
-		, DB      => '.htgroup' # database name
-#		, Server  => 'apache'
-#		, Locking => 1
-#		, Path    => '.'
-		, Debug   => 0
-		# read, write and create flags. There are four modes: rwc - the default,
-		# open for reading, writing and creating. rw - open for reading and
-		# writing. r - open for reading only. w - open for writing only.
-#		, Flags   => 'rwc'
+   ( { name => 'config'
+     , default =>
+        { DBType  => 'Text' # type of database, one of 'DBM', 'Text', or 'SQL'
+        , DB      => '.htgroup' # database name
+#       , Server  => 'apache'
+#       , Locking => 1
+#       , Path    => '.' # Path does not seem to work as documented -VV
+        , Debug   => 0
+      # read, write and create flags. There are four modes: rwc - the default,
+      # open for reading, writing and creating. rw - open for reading and
+      # writing. r - open for reading only. w - open for writing only.
+#       , Flags   => 'rwc'
 
-		# FOR DBI 
-#		, Host    => 'localhost'
-#		, Port    => ???
-#		, User    => ''
-#		, Auth    => ''
-		, Driver  => 'SQLite'
-		, GroupTable  => 'groups'
-		, NameField  => 'user_id'
-		, GroupField  => 'group_id'
-		
-		# FOR DBM Files
-#		, DBMF => 'NDBM'
-#		, Mode => 0644
-		}
-	}
-)
-; use Class::props
-( 	{ name => '_group_admin'
-	, default => sub { CGI::Builder::Auth::GroupAdmin->new(%{$_[0]->config}) }
-	}
-, 	{ name => 'realm'
-	, default => 'main'
-	}
-)
-; use Object::props ('id')
+      # FOR DBI 
+#       , Host    => 'localhost'
+#       , Port    => ???
+#       , User    => ''
+#       , Auth    => ''
+#       , Driver  => 'SQLite'
+#       , GroupTable  => 'groups'
+#       , NameField  => 'user_id'
+#       , GroupField  => 'group_id'
+      
+      # FOR DBM Files
+#      , DBMF => 'NDBM'
+#      , Mode => 0644
+       }
+     }
+   )
+; use Class::props   
+   ( { name => '_group_admin'
+     , default => sub { CGI::Builder::Auth::GroupAdmin->new(%{$_[0]->config}) }
+     }
+   , { name => 'realm'
+     , default => 'main'
+     }
+   )
+; use Object::props
+   ( { name => 'id' 
+     }
+   )
 
 ; use overload
-	(	'""' => 'as_string'
-	,	fallback => 1
-	)
+   (   '""' => 'as_string'
+   ,   fallback => 1
+   )
 
 ; sub as_string { $_[0]->id }
 
-# Cancel construction if requested group does not exist
-; sub init { $_[0] = undef unless $_[0]->_exists }
+#---------------------------------------------------------------------
+# Initializers
+#---------------------------------------------------------------------
 
+# Cancel construction if requested group does not exist
+; sub _init { $_[0] = undef unless $_[0]->_exists }
+
+# When constructing a factory, id must be undef
+; sub _factory { $_[0]->id(undef) }
 
 #---------------------------------------------------------------------
-# Can be called as class method or object method.
+# Factory Methods
 #---------------------------------------------------------------------
 ; sub list { $_[0]->_group_admin->list }
 
-# Calling add as object method should work, but does not make sense.
-# Do not document it.
 ; sub add 
-	{ my ($self, $data) = @_
-	; my $group = ref $data ? $data->{group} : $data;
-	
-	; return if $self->_exists($group);
+   { my ($self, $data) = @_
+   ; my $group = ref $data ? $data->{group} : $data;
+   
+   ; return if $self->_exists($group);
 
-	; $self->_group_admin->create($group) or warn "Creation Failed"
-	; return $self->load(id => $group)
-	}
-	
+   ; $self->_group_admin->create($group) or warn "Creation Failed"
+   ; return $self->load(id => $group)
+   }
+   
+#---------------------------------------------------------------------
+# Instance Methods
+#---------------------------------------------------------------------
 ; sub _exists 
-	{ ref $_[0] 
-		? $_[0]->_group_admin->exists($_[0]->id) 
-		: $_[0]->_group_admin->exists($_[1]) 
-	}
+   { defined $_[1] 
+      ? $_[0]->_group_admin->exists($_[1]) 
+      : $_[0]->_group_admin->exists($_[0]->id) 
+   }
 ; sub delete 
-	{ ref $_[0] 
-		? $_[0]->_group_admin->remove($_[0]->id) 
-		: $_[0]->_group_admin->remove($_[1]) 
-	}
+   { defined $_[1] 
+      ? $_[0]->_group_admin->remove($_[1]) 
+      : $_[0]->_group_admin->remove($_[0]->id) 
+   }
 
 # 
 # FIXME add_member & remove_member appear to succeed when !exists user
 # 
 ; sub add_member 
-	{ my ($self, @users) = @_
-	; my $group = ref $self ? $self->id : shift @users;
-	
-	; return if !$self->_exists($group)
+   { my ($self, @users) = @_
+   ; my $group = $self->id || shift(@users);
+   
+   ; return if !$self->_exists($group)
 
-	; for my $user (@users)
-		{ next unless CGI::Builder::Auth::User->_exists($user)
-		; $self->_group_admin->add($user, $group)
-		}
-	; 1
-	}
+   ; my $user_factory = CGI::Builder::Auth::User->new
+   
+   ; for my $user (@users)
+      { next unless $user_factory->_exists($user)
+      ; $self->_group_admin->add($user, $group)
+      }
+   ; 1
+   }
 ; sub remove_member 
-	{ my ($self, @users) = @_
-	; my $group = ref $self ? $self->id : shift @users
-	
-	; return if !$self->_exists($group)
-	
-	; for my $user (@users)
-		{ $self->_group_admin->delete($user, $group)
-		}
-	; 1
-	}
+   { my ($self, @users) = @_
+   ; my $group = $self->id || shift(@users)
+   
+   ; return if !$self->_exists($group)
+   
+   ; for my $user (@users)
+      { $self->_group_admin->delete($user, $group)
+      }
+   ; 1
+   }
 ; sub member_list
-	{ my ($self, $group) = @_
-	; $group = $group || $self->id
-	
-	; return if !$self->_exists($group)
-	
-	; $self->_group_admin->list($group)
-	}
+   { my ($self, $group) = @_
+   ; $group = $group || $self->id
+   
+   ; return if !$self->_exists($group)
+   
+   ; $self->_group_admin->list($group)
+   }
 
+; sub DESTROY
+   { ref($_group_admin) 
+           and !Scalar::Util::isweak($_group_admin) 
+           and Scalar::Util::weaken($_group_admin)
+   }
+ 
 
 =head1 NAME
 
@@ -288,3 +311,4 @@ it under the same terms as Perl itself.
 =cut
 
 "Copyright 2004 Vincent Veselosky [[http://control-escape.com]]";
+# vim:ft=perl:expandtab:ts=3:sw=3:

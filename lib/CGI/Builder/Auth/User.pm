@@ -1,66 +1,69 @@
 package CGI::Builder::Auth::User
 ; use strict
+; require Scalar::Util
 
-; our $VERSION = '0.03'
+; our $VERSION = '0.05'
+; our $_user_admin;
 
 
 ; use CGI::Builder::Auth::UserAdmin
 ; use Digest::MD5 'md5_hex'
 
 ; use Class::constr 
-    ( { name => 'load',      init => '_real' }
-    , { name => 'anonymous', init => '_anon' }
+    ( { name => 'load',      init => '_real', copy => 1 }
+    , { name => 'anonymous', init => '_anon', copy => 1  }
+    , { name => 'new',       init => '_factory' }
     )
 ; use Class::groups
-(    { name => 'config'
-    , default =>
-        { DBType  => 'Text' # type of database, one of 'DBM', 'Text', or 'SQL'
-        , DB      => '.htpasswd' # database name
+    ( { name => 'config'
+      , default =>
+         { DBType  => 'Text' # type of database, one of 'DBM', 'Text', or 'SQL'
+         , DB      => '.htpasswd' # database name
 #        , Server  => 'apache'
 #        , Encrypt => 'MD5'
-        , Encrypt => 'crypt'
+         , Encrypt => 'crypt'
 #        , Locking => 1
 #        , Path    => '.'
-        , Debug   => 0
+         , Debug   => 0
         # read, write and create flags. There are four modes: rwc - the default,
         # open for reading, writing and creating. rw - open for reading and
         # writing. r - open for reading only. w - open for writing only.
-#        , Flags   => 'rwc'
+#         , Flags   => 'rwc'
 
         # FOR DBI 
-#        , Host    => 'localhost'
-#        , Port    => ???
-#        , User    => ''
-#        , Auth    => ''
-        , Driver  => 'SQLite'
-        , UserTable  => 'users'
-        , NameField  => 'user_id'
-#        , PasswordField  => 'password'
+#         , Host    => 'localhost'
+#         , Port    => ???
+#         , User    => ''
+#         , Auth    => ''
+#          , Driver  => 'SQLite'
+#          , UserTable  => 'users'
+#          , NameField  => 'user_id'
+#         , PasswordField  => 'password'
         
         # FOR DBM Files
-#        , DBMF => 'NDBM'
-#        , Mode => 0644
-        }
-    }
-)
-; use Class::props
-(     { name => '_user_admin'
-    , default => sub { CGI::Builder::Auth::UserAdmin->new(%{$_[0]->config}) }
-    }
-,     { name => 'realm'
-    , default => 'main'
-    }
-)
-; use Object::props 
-    ( { name => 'id'
-      , default => 'anonymous'
+#         , DBMF => 'NDBM'
+#         , Mode => 0644
+         }
       }
     )
+; use Class::props 
+   ( { name => '_user_admin'
+     , default => sub { CGI::Builder::Auth::UserAdmin->new(%{$_[0]->config}) }
+     }
+   , { name => 'realm'
+     , default => 'main'
+     }
+   )
+; use Object::props 
+   ( { name => 'id'
+     , default => 'anonymous'
+     }
+   )
 
 ; use overload
-    (    '""' => 'as_string'
-    ,    fallback => 1
-    )
+   (    '""' => 'as_string'
+   ,    fallback => 1
+   )
 # Overload Magic
 ; sub as_string { $_[0]->id }
 
@@ -72,14 +75,15 @@ package CGI::Builder::Auth::User
 # Force anonymous even if caller foolishly passed an ID
 ; sub _anon { $_[0]->id('anonymous') }
 
+# When building a factory, id must be undef
+; sub _factory { $_[0]->id(undef) }
+
 
 #---------------------------------------------------------------------
-# Can be called as class method or object method.
+# Factory Methods
 #---------------------------------------------------------------------
 ; sub list { $_[0]->_user_admin->list }
 
-# Calling add as object method should work, but does not make sense.
-# Do not document it.
 ; sub add 
     { my ($self, $data) = @_
     ; my $username = delete $data->{'username'}
@@ -96,25 +100,28 @@ package CGI::Builder::Auth::User
         : undef
     }
 
+#---------------------------------------------------------------------
+# Instance Methods
+#---------------------------------------------------------------------
 ; sub _exists 
-    { ref $_[0] 
-        ? $_[0]->_user_admin->exists($_[0]->id) 
-        : $_[0]->_user_admin->exists($_[1]) 
+    { defined $_[1] 
+        ? $_[0]->_user_admin->exists($_[1]) 
+        : $_[0]->_user_admin->exists($_[0]->id) 
     }
 ; sub delete 
-    { ref $_[0] 
-        ? $_[0]->_user_admin->delete($_[0]->id) 
-        : $_[0]->_user_admin->delete($_[1]) 
+    { defined $_[1] 
+        ? $_[0]->_user_admin->delete($_[1]) 
+        : $_[0]->_user_admin->delete($_[0]->id) 
     }
 ; sub suspend 
-    { ref $_[0] 
-        ? $_[0]->_user_admin->suspend($_[0]->id) 
-        : $_[0]->_user_admin->suspend($_[1]) 
+    { defined $_[1] 
+        ? $_[0]->_user_admin->suspend($_[1]) 
+        : $_[0]->_user_admin->suspend($_[0]->id) 
     }
 ; sub unsuspend 
-    { ref $_[0] 
-        ? $_[0]->_user_admin->unsuspend($_[0]->id) 
-        : $_[0]->_user_admin->unsuspend($_[1]) 
+    { defined $_[1] 
+        ? $_[0]->_user_admin->unsuspend($_[1]) 
+        : $_[0]->_user_admin->unsuspend($_[0]->id) 
     }
 
 ; sub password_matches
@@ -129,6 +136,11 @@ package CGI::Builder::Auth::User
         : $self->_user_admin->encrypt($passwd) eq $stored_passwd
     }
 
+; sub DESTROY
+    { ref($_user_admin) 
+            and !Scalar::Util::isweak($_user_admin) 
+            and Scalar::Util::weaken($_user_admin)
+    }
 
 =head1 NAME
 
@@ -311,4 +323,4 @@ it under the same terms as Perl itself.
 =cut
 
 "Copyright 2004 Vincent Veselosky [[http://control-escape.com]]";
-# vim:expandtab:ts=4:sw=4:ft=perl:
+# vim:expandtab:ts=3:sw=3:ft=perl:
