@@ -6,7 +6,7 @@ package CGI::Builder::Auth
 ; use 5.006001
 ; use strict
 
-; our $VERSION = '0.02'
+; our $VERSION = '0.03'
 
 ; use CGI::Builder::Auth::Context
 

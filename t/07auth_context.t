@@ -11,7 +11,6 @@ BEGIN {
 	use_ok('CGI::Builder::Auth::Context');
 };
 
-
 # TODO Ensure database from previous test is cleaned up
 
 # TODO Get an auth object from somewhere reasonable

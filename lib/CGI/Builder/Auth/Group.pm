@@ -1,7 +1,7 @@
 package CGI::Builder::Auth::Group
 ; use strict
 
-; our $VERSION = '0.02'
+; our $VERSION = '0.03'
 
 ; use CGI::Builder::Auth::GroupAdmin
 ; use CGI::Builder::Auth::User
@@ -231,10 +231,8 @@ Return void (currently always returns true).
 
 Instance method, takes no arguments.
 
-Delete the user from the user table. After a call to this method, the object
-should be considered unusable. (In practice this implementation makes the
-object anonymous, but this behavior is not required and is not guaranteed to be
-true in future releases. Do not rely on it.)
+Delete the group from the group table. After a call to this method, the object
+should be considered unusable. 
 
 
 =head2 C<member_list>

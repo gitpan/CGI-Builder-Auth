@@ -1,10 +1,10 @@
-# $Id: DBM.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
+# $Id: DBM.pm,v 1.2 2004/07/02 15:07:46 veselosky Exp $
 package CGI::Builder::Auth::GroupAdmin::DBM;
 use vars qw(@ISA $DLM $VERSION);
 use strict;
 use Carp ();
 @ISA = qw(CGI::Builder::Auth::GroupAdmin);
-$VERSION = (qw$Revision: 1.1.1.1 $)[1];
+$VERSION = (qw$Revision: 1.2 $)[1];
 $DLM = " ";
 
 my %Default = (PATH => ".",
@@ -54,7 +54,7 @@ sub remove {
     my($self,$group) = @_;
     $group = $self->{NAME} unless defined $group;
     delete $self->{'_HASH'}{$group};
-    if($self->{NAME} eq $group) {
+    if($self->{NAME} and $self->{NAME} eq $group) {
 	delete $self->{NAME};
     }
     1;

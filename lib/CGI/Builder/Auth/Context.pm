@@ -5,58 +5,48 @@ package CGI::Builder::Auth::Context
 
 ; use strict
 
-; our $VERSION = '0.02'
+; our $VERSION = '0.03'
 
 ; use File::Spec
 
 ; use Class::constr { init => [ qw/ load_token / ] }
 
-; use Class::props 
-	(	{ name => 'User_factory'
-		, default => 'CGI::Builder::Auth::User'
-		, validation => \&load_factory
-		}
-	,	{ name => 'Group_factory'
-		, default => 'CGI::Builder::Auth::Group'
-		, validation => \&load_factory
-		}
-	)
 ; use Object::props
-	( 	{ name => 'user'
-		, default => sub { $_[0]->User_factory->anonymous }
-		}
-	,	{ name => 'realm'
-		, default => 'main'
-		}
-	,	{ name => 'owner'
-		}
-	,	{ name => 'session'
-		, default => sub 
-			{ ref($_[0]->owner) && $_[0]->owner->can('cs')
-				? $_[0]->owner->cs
-				: undef
-			}
-		}
-	)
+   ( { name => 'user'
+     , default => sub { $_[0]->User_factory->anonymous }
+     }
+   , { name => 'realm'
+     , default => 'main'
+     }
+   , { name => 'owner'
+     }
+   , { name => 'session'
+     , default => sub 
+         { ref($_[0]->owner) && $_[0]->owner->can('cs')
+             ? $_[0]->owner->cs
+             : undef
+         }
+     }
+   )
 ; use Class::groups
-	( 	{ name => 'config'
-		, props => 
-			[ 	{ name => 'magic_string'
-				, default => 'This is the default magic string, change it to 
-					something unique for your application'
-				}
-			,	{ name => 'User_factory'
-				, default => 'CGI::Builder::Auth::User'
-				, validation => \&load_factory
-				}
-			,	{ name => 'Group_factory'
-				, default => 'CGI::Builder::Auth::Group'
-				, validation => \&load_factory
-				}
-			]
-		}
-	)
-	
+   ( { name => 'config'
+     , props => 
+         [ { name => 'magic_string'
+           , default => 'This is the default magic string, change it to 
+               something unique for your application'
+           }
+         , { name => 'User_factory'
+           , default => 'CGI::Builder::Auth::User'
+           , validation => \&load_factory
+           }
+         , { name => 'Group_factory'
+           , default => 'CGI::Builder::Auth::Group'
+           , validation => \&load_factory
+           }
+         ]
+     }
+   )
+    
 ; sub user_list { $_[0]->User_factory->list }
 ; sub group_list { $_[0]->Group_factory->list }
 
@@ -64,15 +54,15 @@ package CGI::Builder::Auth::Context
 ; sub add_group { shift()->Group_factory->add(@_) }
 
 ; sub delete_user 
-	{ my ($self,$user) = @_;
-	; ref($user) or $user = $self->User_factory->load(id => $user)
-	; return $user ? $user->delete : undef
-	}
+    { my ($self,$user) = @_;
+    ; ref($user) or $user = $self->User_factory->load(id => $user)
+    ; return $user ? $user->delete : undef
+    }
 ; sub delete_group 
-	{ my ($self,$group) = @_;
-	; ref($group) or $group = $self->Group_factory->load(id => $group)
-	; return $group ? $group->delete : undef
-	}
+    { my ($self,$group) = @_;
+    ; ref($group) or $group = $self->Group_factory->load(id => $group)
+    ; return $group ? $group->delete : undef
+    }
 
 
 ; sub add_member { shift()->Group_factory->add_member(@_) }
@@ -80,77 +70,77 @@ package CGI::Builder::Auth::Context
 ; sub group_members { shift()->Group_factory->member_list(@_) }
 
 ; sub login
-	{ my ($self,$username,$pass) = @_
-	; my $user = $self->User_factory->load(id => $username) or return
+    { my ($self,$username,$pass) = @_
+    ; my $user = $self->User_factory->load(id => $username) or return
 
-	; if ($user->password_matches($pass) )
-		{ $self->user($user)
-		; if ( $self->session ) 
-			{ $self->session->param('CBA_Token', 
-					$self->mk_token($username,$self->session->id) )
-			}
-		; return $user
-		} 
-	  else { return }
-	}
+    ; if ($user->password_matches($pass) )
+        { $self->user($user)
+        ; if ( $self->session ) 
+            { $self->session->param('CBA_Token', 
+                    $self->mk_token($username,$self->session->id) )
+            }
+        ; return $user
+        } 
+      else { return }
+    }
 
 ; sub logout 
-	{ my ($self) = @_
-	; if ($self->session) { $self->session->clear(['CBA_Token']) }
-	; $self->user( undef )
-	; 1
-	}
+    { my ($self) = @_
+    ; if ($self->session) { $self->session->clear(['CBA_Token']) }
+    ; $self->user( undef )
+    ; 1
+    }
 
 ; sub require_valid_user { $_[0]->user ne 'anonymous' }
 
 ; sub require_user 
-	{ my ($self, @users) = @_
-	; my $match = 0
-	; for (@users) { $match++,last if $self->user eq $_ }
-	; return $match
-	}
+    { my ($self, @users) = @_
+    ; my $match = 0
+    ; for (@users) { $match++,last if $self->user eq $_ }
+    ; return $match
+    }
 
 ; sub require_group
-	{ my ($self, @groups) = @_
-	; my $match = 0
-	; GROUP: for my $g (@groups) 
-		{ for ( $self->Group_factory->member_list($g) ) 
-			{ $match++,last GROUP if $_ eq $self->user 
-			}
-		}
-	; return $match
-	}
+    { my ($self, @groups) = @_
+    ; my $match = 0
+    ; GROUP: for my $g (@groups) 
+        { for ( $self->Group_factory->member_list($g) ) 
+            { $match++,last GROUP if $_ eq $self->user 
+            }
+        }
+    ; return $match
+    }
 
 
 ; sub mk_token
-	{ my ($self,$user,$sid) = @_;
-	; require Digest::MD5
-	; my $time = time
-	; my $hash = Digest::MD5::md5_hex(join ":", $sid, $time, $user, $self->magic_string)
-	; return join ":", $hash, $sid, $time, $user
-	}
+    { my ($self,$user,$sid) = @_;
+    ; require Digest::MD5
+    ; my $time = time
+    ; my $hash = Digest::MD5::md5_hex(join ":", $sid, $time, $user, $self->magic_string)
+    ; return join ":", $hash, $sid, $time, $user
+    }
 
 
 ; sub load_token
-	{ my ($self, $token) = @_
-	; if ($self->session and $token = $self->session->param('CBA_Token') )
-		{ require Digest::MD5
-		; my ($digest,$sid,$time,$username) = split /:/, $token, 4
-		; if ($digest eq Digest::MD5::md5_hex(
-				join ":",, $sid, $time, $username, $self->magic_string
-			    ) 
-			 )
-			{ $self->user( $self->User_factory->load(id => $username) || undef )
-			}
-		}
-	}
+    { my ($self, $token) = @_
+    ; if ($self->session and $token = $self->session->param('CBA_Token') )
+        { require Digest::MD5
+        ; my ($digest,$sid,$time,$username) = split /:/, $token, 4
+        ; if ($digest eq Digest::MD5::md5_hex(
+                join ":",, $sid, $time, $username, $self->magic_string
+                ) 
+             )
+           { $self->user( $self->User_factory->load(id => $username) || undef )
+           }
+        }
+    }
 
 
 ; sub load_factory
-	{ ref $_ 
-		? 1 
-		: eval { require File::Spec->catfile( split /::/ ) . ".pm"}
-	}
+    { ref $_ 
+        ? 1 
+        : eval { require File::Spec->catfile( split /::/ ) . ".pm"}
+    }
 
 =head1 NAME
 
@@ -317,5 +307,6 @@ it under the same terms as Perl itself.
 
 
 =cut
-	
+    
 "Copyright 2004 Vincent Veselosky [[http://control-escape.com]]";
+# vim:expandtab:sw=3:ts=3:ft=perl:

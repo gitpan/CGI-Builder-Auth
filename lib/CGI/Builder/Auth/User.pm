@@ -1,7 +1,7 @@
 package CGI::Builder::Auth::User
 ; use strict
 
-; our $VERSION = '0.02'
+; our $VERSION = '0.03'
 
 
 ; use CGI::Builder::Auth::UserAdmin
@@ -51,7 +51,11 @@ package CGI::Builder::Auth::User
     , default => 'main'
     }
 )
-; use Object::props ('id')
+; use Object::props 
+    ( { name => 'id'
+      , default => 'anonymous'
+      }
+    )
 
 ; use overload
     (    '""' => 'as_string'

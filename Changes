@@ -1,5 +1,10 @@
 Revision history for CGI-Builder-Auth.
 
+0.03 -- 2 July 2004
+	* Fixed several warnings from 0.02
+	* Corrected POD in Group.pm (Bug 983388)
+	* Made User id default to anonymous (Bug 983007)
+
 0.02 -- 30 June 2004
     * Modified and documented the API for User and Group classes. Documented
       the possibility to replace User and Group classes with custom ones.

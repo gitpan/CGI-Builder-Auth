@@ -8,6 +8,7 @@ WriteMakefile(
     'PREREQ_PM'		=> {
 		'Carp'          =>  0,
 		'CGI::Builder'  =>  1.11,
+		'Class::constr' =>  1.7,
 		'Class::props'  =>  1.7,
 		'Digest::MD5 '  =>  0,
 		'File::Basename'=>  0,
