@@ -5,7 +5,7 @@ package CGI::Builder::Auth::Context
 
 ; use strict
 
-; our $VERSION = '0.03'
+; our $VERSION = '0.04'
 
 ; use File::Spec
 
@@ -64,10 +64,26 @@ package CGI::Builder::Auth::Context
     ; return $group ? $group->delete : undef
     }
 
-
-; sub add_member { shift()->Group_factory->add_member(@_) }
-; sub remove_member { shift()->Group_factory->remove_member(@_) }
-; sub group_members { shift()->Group_factory->member_list(@_) }
+; sub add_member 
+   { my ($self, $group, @users) = @_
+   ; ref($group) or $group = $self->Group_factory->load(id => $group)
+   ; return unless defined($group)
+   ; for (@users) { $group->add_member($_) }
+   ; 1 
+   }
+; sub remove_member 
+   { my ($self, $group, @users) = @_
+   ; ref($group) or $group = $self->Group_factory->load(id => $group)
+   ; return unless defined($group)
+   ; for (@users) { $group->remove_member($_) }
+   ; 1 
+   }
+; sub group_members 
+   { my ($self,$group) = @_
+   ; ref($group) or $group = $self->Group_factory->load(id => $group)
+   ; return unless defined($group)
+   ; $group->member_list 
+   }
 
 ; sub login
     { my ($self,$username,$pass) = @_
@@ -104,10 +120,12 @@ package CGI::Builder::Auth::Context
     { my ($self, @groups) = @_
     ; my $match = 0
     ; GROUP: for my $g (@groups) 
-        { for ( $self->Group_factory->member_list($g) ) 
-            { $match++,last GROUP if $_ eq $self->user 
-            }
-        }
+       { ref($g) or $g = $self->Group_factory->load(id => $g)
+       ; next GROUP unless defined($g)
+       ; for ( $g->member_list ) 
+          { $match++,last GROUP if $_ eq $self->user 
+          }
+       }
     ; return $match
     }
 

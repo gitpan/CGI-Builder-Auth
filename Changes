@@ -1,5 +1,10 @@
 Revision history for CGI-Builder-Auth.
 
+0.04 -- 5 July 2004
+	* Made Context call Group membership methods as instance methods, not 
+		class methods (Bug 984963)
+	* Added example of custom User/Group factories derived from Class::DBI.
+	
 0.03 -- 2 July 2004
 	* Fixed several warnings from 0.02
 	* Corrected POD in Group.pm (Bug 983388)

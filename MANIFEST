@@ -31,3 +31,10 @@ lib/CGI/Builder/Auth/UserAdmin/DBM.pm
 lib/CGI/Builder/Auth/UserAdmin.pm
 examples/cbauth.cgi
 examples/CBAuth.pm
+examples/cbauthcdbi.cgi
+examples/CBAuthCDBI.pm
+examples/CDBI_base.pm
+examples/CDBI_user.pm
+examples/CDBI_link.pm
+examples/CDBI_group.pm
+
