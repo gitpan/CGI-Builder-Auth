@@ -1,4 +1,4 @@
-# $Id: DBM.pm,v 1.1.1.1 2001/02/20 03:33:50 lstein Exp $
+# $Id: DBM.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::UserAdmin::DBM;
 use CGI::Builder::Auth::UserAdmin ();
 use Carp ();

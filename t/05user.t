@@ -20,23 +20,26 @@ isa_ok(CGI::Builder::Auth::User->_user_admin, 'CGI::Builder::Auth::UserAdmin', '
 
 @users = CGI::Builder::Auth::User->list;
 ok(!@users,	'user_list initially empty');
-ok(!CGI::Builder::Auth::User->exists('bob'), 	"exists class method");
+# ok(!CGI::Builder::Auth::User->exists('bob'), 	"exists class method");
 
-$user = CGI::Builder::Auth::User->new(id => 'bob');
+$user = CGI::Builder::Auth::User->load(id => 'bob');
 is($user, undef,  	'$user not constructed when does not exist');
+
+$user = CGI::Builder::Auth::User->anonymous;
+is($user, 'anonymous',  'can create anonymous user');
 
 #-------------------------------------------------------------------- 
 # Add user
 #-------------------------------------------------------------------- 
 $user = CGI::Builder::Auth::User->add({username => 'bob', password => 'password'});
 isa_ok($user, 'CGI::Builder::Auth::User', 	'$user');
-ok(CGI::Builder::Auth::User->exists('bob'), "exists as class method");
+ok(CGI::Builder::Auth::User->load(id => 'bob'), "load after create");
 
 #-------------------------------------------------------------------- 
 # Object Methods
 #-------------------------------------------------------------------- 
 
-ok($user->exists, "exists as object method");
+# ok($user->exists, "exists as object method");
 is($user->id, 'bob', "id");
 
 
@@ -61,17 +64,20 @@ ok($user->unsuspend, 	'unsuspend');
 ok($user->password_matches('password'), 	'password matches after unsuspend');
 
 #-------------------------------------------------------------------- 
-# Add user that exists
+# Add user should fail in these cases
 #-------------------------------------------------------------------- 
 $user = CGI::Builder::Auth::User->add({username => 'bob', password => 'password'});
 ok(!$user, 	"add fails when user exists");
 
+$user = CGI::Builder::Auth::User->add({username => 'anonymous', password => 'password'});
+ok(!$user, 	"cannot 'create' anonymous user");
+
 #-------------------------------------------------------------------- 
 # Delete
 #-------------------------------------------------------------------- 
-$user = CGI::Builder::Auth::User->new(id => 'bob');
+$user = CGI::Builder::Auth::User->load(id => 'bob');
 ok($user->delete,	"delete as object method");
-ok(CGI::Builder::Auth::User->delete('carol'), 	"delete as class method");
+ok(CGI::Builder::Auth::User->load(id => 'carol')->delete, 	"delete 'in place'");
 ok(!CGI::Builder::Auth::User->list,	"users deleted successfully");
 
 

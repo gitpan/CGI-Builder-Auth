@@ -6,7 +6,7 @@ package CGI::Builder::Auth
 ; use 5.006001
 ; use strict
 
-; our $VERSION = '0.01'
+; our $VERSION = '0.02'
 
 ; use CGI::Builder::Auth::Context
 
@@ -169,6 +169,16 @@ retrieved from the session. It should be set to something unique for your
 application. It I<must> be set before the first use of the C<auth> object,
 and I<must not> be changed during the execution of your program.
 
+=item * B<User_factory> (advanced)
+
+This configuration parameter is for advanced users who wish to supply their own
+custom class for user objects. See L<"Custom User and Group Classes"> below.
+
+=item * B<Group_factory> (advanced)
+
+This configuration parameter is for advanced users who wish to supply their own
+custom class for group objects. See L<"Custom User and Group Classes"> below.
+
 =back
 
 
@@ -206,6 +216,38 @@ Ensure that you have set the configuration options for CGI::Builder::Session in
 your code B<before> the first use of the C<auth> property.
 
 =back
+
+
+
+=head1 Custom User and Group Classes
+
+WARNING: This is an experimental feature.
+
+It may happen that you have your user information stored in a relational
+database, and you would like to access additional columns in the user table, or
+perform special queries on related tables. This module can work together with
+custom classes that you create to implement this additional functionality.
+
+Your custom user class I<must> implement the interface described in
+L<CGI::Builder::Auth::User>, and your custom group class I<must> implement the
+interface described in L<CGI::Builder::Auth::Group>. They may of course have
+many other properties and methods, but all the ones described in these resources
+I<must> be supported.
+
+However, your custom classes should I<not> inherit from these default classes. The
+default classes are designed to work specifically with the text file format and
+do not contain any reusable methods for SQL databases.
+
+Custom classes come as a matched set. If you use a custom user class, you must
+also use a custom group class.
+
+To instruct the C<auth> object to use your custom classes, set the
+C<User_factory> and C<Group_factory> auth_config parameters to the appropriate class
+names in your OH_init. The configurator will attempt to C<require> these
+modules at the time you set the values. If they cannot be found, the system
+will ignore your custom classes and use the defaults. This behavior may change
+in a future release, feedback is welcome.
+
 
 =head1 TO DO
 

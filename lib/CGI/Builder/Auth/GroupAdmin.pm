@@ -1,4 +1,4 @@
-# $Id: GroupAdmin.pm,v 1.2 2003/01/16 19:41:31 lstein Exp $
+# $Id: GroupAdmin.pm,v 1.1.1.1 2004/06/28 19:24:26 veselosky Exp $
 
 package CGI::Builder::Auth::GroupAdmin;
 use CGI::Builder::Auth::AdminBase ();

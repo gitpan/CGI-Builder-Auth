@@ -3,7 +3,7 @@
 
 #########################
 
-use Test::More tests => 21;
+use Test::More tests => 19;
 
 BEGIN { 
 	# Clean up from previous tests
@@ -20,9 +20,9 @@ isa_ok(CGI::Builder::Auth::Group->_group_admin, 'CGI::Builder::Auth::GroupAdmin'
 
 @groups = CGI::Builder::Auth::Group->list;
 ok(!@groups,	'group_list initially empty');
-ok(!CGI::Builder::Auth::Group->exists('testgroup'), 	"exists class method");
+# ok(!CGI::Builder::Auth::Group->exists('testgroup'), 	"exists class method");
 
-$group = CGI::Builder::Auth::Group->new(id => 'testgroup');
+$group = CGI::Builder::Auth::Group->load(id => 'testgroup');
 is($group, undef,  	'$group not constructed when does not exist');
 
 #-------------------------------------------------------------------- 
@@ -30,13 +30,13 @@ is($group, undef,  	'$group not constructed when does not exist');
 #-------------------------------------------------------------------- 
 $group = CGI::Builder::Auth::Group->add('testgroup');
 isa_ok($group, 'CGI::Builder::Auth::Group', 	'$group');
-ok(CGI::Builder::Auth::Group->exists('testgroup'), "exists as class method");
+ok(CGI::Builder::Auth::Group->load(id => 'testgroup'), "load after create");
 
 #-------------------------------------------------------------------- 
 # Object Methods
 #-------------------------------------------------------------------- 
 
-ok($group->exists, "exists as object method");
+# ok($group->exists, "exists as object method");
 is($group->id, 'testgroup', "id");
 
 
@@ -79,9 +79,9 @@ ok(!$group, 	"add fails when group exists");
 #-------------------------------------------------------------------- 
 # Delete
 #-------------------------------------------------------------------- 
-$group = CGI::Builder::Auth::Group->new(id => 'testgroup');
+$group = CGI::Builder::Auth::Group->load(id => 'testgroup');
 ok($group->delete,	"delete as object method");
-ok(CGI::Builder::Auth::Group->delete('mygroup'), 	"delete as class method");
+ok(CGI::Builder::Auth::Group->load(id => 'mygroup')->delete, 	"delete 'in place'");
 ok(!CGI::Builder::Auth::Group->list,	"groups deleted successfully");
 
 

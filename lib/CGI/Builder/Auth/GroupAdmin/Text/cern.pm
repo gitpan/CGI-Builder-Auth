@@ -1,4 +1,4 @@
-# $Id: cern.pm,v 1.1.1.1 1997/12/11 21:44:35 lstein Exp $
+# $Id: cern.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::GroupAdmin::Text::cern;
 use Carp;
 @ISA = qw(CGI::Builder::Auth::GroupAdmin::Text::_generic);

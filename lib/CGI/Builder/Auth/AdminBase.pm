@@ -1,4 +1,4 @@
-# $Id: AdminBase.pm,v 1.1.1.1 2001/02/20 02:32:11 lstein Exp $
+# $Id: AdminBase.pm,v 1.1.1.1 2004/06/28 19:24:26 veselosky Exp $
 package CGI::Builder::Auth::AdminBase;
 use strict;
 

@@ -1,4 +1,4 @@
-# $Id: DBM.pm,v 1.1.1.1 1997/12/23 11:14:48 lstein Exp $
+# $Id: DBM.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::GroupAdmin::DBM;
 use vars qw(@ISA $DLM $VERSION);
 use strict;

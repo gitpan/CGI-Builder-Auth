@@ -1,11 +1,11 @@
-# $Id: SQL.pm,v 1.2 2003/01/16 19:41:31 lstein Exp $
+# $Id: SQL.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::UserAdmin::SQL;
 use DBI;
 use Carp ();
 use strict;
 use vars qw(@ISA $VERSION);
 @ISA = qw(CGI::Builder::Auth::UserAdmin);
-$VERSION = (qw$Revision: 1.2 $)[1];
+$VERSION = (qw$Revision: 1.1.1.1 $)[1];
 
 my %Default = (HOST => "",                  #server hostname
 	       DB => "",                    #database name

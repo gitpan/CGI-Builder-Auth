@@ -1,4 +1,4 @@
-package CBAuth;
+package CGI::Builder::Auth::Example::CBAuth;
 use strict;
 
 use CGI::Builder qw/ CGI::Builder::Session CGI::Builder::Auth /;

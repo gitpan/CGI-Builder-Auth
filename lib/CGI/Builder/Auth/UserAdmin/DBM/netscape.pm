@@ -1,4 +1,4 @@
-# $Id: netscape.pm,v 1.1.1.1 1998/01/13 12:57:53 lstein Exp $
+# $Id: netscape.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 
 # Define a subclass of DB_File that null-terminates strings
 package DBNull_File;

@@ -1,10 +1,10 @@
-# $Id: Text.pm,v 1.2 2003/01/16 19:41:31 lstein Exp $
+# $Id: Text.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::GroupAdmin::Text;
 use Carp ();
 use strict;
 use vars qw(@ISA $DLM $VERSION $LineMax);
 @ISA = qw(CGI::Builder::Auth::GroupAdmin);
-$VERSION = (qw$Revision: 1.2 $)[1];
+$VERSION = (qw$Revision: 1.1.1.1 $)[1];
 $DLM = ": ";
 
 # Maximum size of each line in the group file.  Anytime we have more 

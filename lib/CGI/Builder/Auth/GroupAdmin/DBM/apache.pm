@@ -1,4 +1,4 @@
-# $Id: apache.pm,v 1.1.1.1 2000/12/14 16:41:42 lstein Exp $
+# $Id: apache.pm,v 1.1.1.1 2004/06/28 19:24:28 veselosky Exp $
 package CGI::Builder::Auth::GroupAdmin::DBM::apache;
 # Modified 10 Oct 1996, by Alex Wong <alexw@toolshed.org>
 use Carp ();

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
 
 require './CBAuth.pm';
-my $app = CBAuth->new();
+my $app = CGI::Builder::Auth::Example::CBAuth->new();
 $app->process();

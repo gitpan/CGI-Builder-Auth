@@ -4,6 +4,9 @@ package CGI::Builder::Auth::Context
 # please read http://perl.4pro.net/perlish_coding_style.html
 
 ; use strict
+
+; our $VERSION = '0.02'
+
 ; use File::Spec
 
 ; use Class::constr { init => [ qw/ load_token / ] }
@@ -42,6 +45,14 @@ package CGI::Builder::Auth::Context
 				, default => 'This is the default magic string, change it to 
 					something unique for your application'
 				}
+			,	{ name => 'User_factory'
+				, default => 'CGI::Builder::Auth::User'
+				, validation => \&load_factory
+				}
+			,	{ name => 'Group_factory'
+				, default => 'CGI::Builder::Auth::Group'
+				, validation => \&load_factory
+				}
 			]
 		}
 	)
@@ -52,8 +63,17 @@ package CGI::Builder::Auth::Context
 ; sub add_user { shift()->User_factory->add(@_) }
 ; sub add_group { shift()->Group_factory->add(@_) }
 
-; sub delete_user { shift()->User_factory->delete(@_) }
-; sub delete_group { shift()->Group_factory->delete(@_) }
+; sub delete_user 
+	{ my ($self,$user) = @_;
+	; ref($user) or $user = $self->User_factory->load(id => $user)
+	; return $user ? $user->delete : undef
+	}
+; sub delete_group 
+	{ my ($self,$group) = @_;
+	; ref($group) or $group = $self->Group_factory->load(id => $group)
+	; return $group ? $group->delete : undef
+	}
+
 
 ; sub add_member { shift()->Group_factory->add_member(@_) }
 ; sub remove_member { shift()->Group_factory->remove_member(@_) }
@@ -61,7 +81,8 @@ package CGI::Builder::Auth::Context
 
 ; sub login
 	{ my ($self,$username,$pass) = @_
-	; my $user = $self->User_factory->new(id => $username) or return
+	; my $user = $self->User_factory->load(id => $username) or return
+
 	; if ($user->password_matches($pass) )
 		{ $self->user($user)
 		; if ( $self->session ) 
@@ -69,23 +90,23 @@ package CGI::Builder::Auth::Context
 					$self->mk_token($username,$self->session->id) )
 			}
 		; return $user
-		} else {
-		; return
-		}
+		} 
+	  else { return }
 	}
 
 ; sub logout 
 	{ my ($self) = @_
 	; if ($self->session) { $self->session->clear(['CBA_Token']) }
-	; $self->user( $self->User_factory->anonymous )
+	; $self->user( undef )
+	; 1
 	}
 
-; sub require_valid_user { $_[0]->user->exists and $_[0]->user->id ne 'anonymous' }
+; sub require_valid_user { $_[0]->user ne 'anonymous' }
 
 ; sub require_user 
 	{ my ($self, @users) = @_
 	; my $match = 0
-	; for (@users) { $match++,last if $self->user->id eq $_ }
+	; for (@users) { $match++,last if $self->user eq $_ }
 	; return $match
 	}
 
@@ -94,7 +115,7 @@ package CGI::Builder::Auth::Context
 	; my $match = 0
 	; GROUP: for my $g (@groups) 
 		{ for ( $self->Group_factory->member_list($g) ) 
-			{ $match++,last GROUP if $_ eq $self->user->id 
+			{ $match++,last GROUP if $_ eq $self->user 
 			}
 		}
 	; return $match
@@ -115,8 +136,11 @@ package CGI::Builder::Auth::Context
 	; if ($self->session and $token = $self->session->param('CBA_Token') )
 		{ require Digest::MD5
 		; my ($digest,$sid,$time,$username) = split /:/, $token, 4
-		; if ($digest eq Digest::MD5::md5_hex(join ":",, $sid, $time, $username, $self->magic_string) )
-			{ $self->user( $self->User_factory->new(id => $username) || $self->User_factory->anonymous)
+		; if ($digest eq Digest::MD5::md5_hex(
+				join ":",, $sid, $time, $username, $self->magic_string
+			    ) 
+			 )
+			{ $self->user( $self->User_factory->load(id => $username) || undef )
 			}
 		}
 	}
@@ -265,6 +289,32 @@ The @groups parameter may contain group objects, strings, or any combination.
 
 Returns true if the current user is one of the @users. The @users parameter may
 contain either user objects, strings containing usernames, or any combination.
+
+=head1 SUPPORT
+
+Support for this module and all the modules of the CBF is via the mailing list.
+The list is used for general support on the use of the CBF, announcements, bug
+reports, patches, suggestions for improvements or new features. The API to the
+CBF is stable, but if you use the CBF in a production environment, it's
+probably a good idea to keep a watch on the list.
+
+You can join the CBF mailing list at this url:
+
+L<http://lists.sourceforge.net/lists/listinfo/cgi-builder-users>
+
+
+=head1 AUTHOR
+
+Vincent Veselosky
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2004 by Vincent Veselosky
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
 
 =cut
 	
