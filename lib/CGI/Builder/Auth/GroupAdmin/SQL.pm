@@ -23,13 +23,15 @@ sub new {
     my($class) = shift;
     my $self = bless { %Default, @_ } => $class;
     $self->_check(qw(DRIVER DB GROUPTABLE)); 
-    $self->db($self->{DB});	
+    if(!defined $self->{'DBH'}) { $self->db($self->{DB}) }
+    else { $self->{'_DBH'} = $self->{'DBH'}; };
     return $self;
 }
 
 sub DESTROY {
     my($self) = @_;
-    $self->{'_DBH'}->disconnect;
+    #Don't disconnect if you didn't make it.
+    $self->{'_DBH'}->disconnect if(!defined $self->{'DBH'});
 }
 
 sub db {
@@ -44,10 +46,9 @@ sub db {
 
     my $source = sprintf("dbi:%s:%s",@{$self}{qw(DRIVER DB)});
     $source .= ":$self->{HOST}" if $self->{HOST};
-    $source .= ":$self->{PORT}" if $self->{HOST} && $self->{PORT};
-    $self->{'_DBH'} = DBI->connect($source,@{$self}{qw(USER AUTH)} )
+    $source .= ":$self->{PORT}" if $self->{HOST} and $self->{PORT};
+    $self->{'_DBH'} = DBI->connect($source,@{$self}{qw(USER AUTH)} ) 
 	|| Carp::croak($DBI::errstr);
-
     return $old;
 }
 
@@ -55,35 +56,47 @@ package CGI::Builder::Auth::GroupAdmin::SQL::_generic;
 use vars qw(@ISA);
 @ISA = qw(CGI::Builder::Auth::GroupAdmin::SQL);
 
+sub create { return shift->add(@_); }
+
+
 sub add {
-    my($self, $username, $groupname) = @_;
-    return(0, "add_group: no user name!") unless $username;
+	my $self = shift;
+    my($groupname,$username) = @_;
+    my $statement;
+    #This function is sometimes called to create a group.  So it has to be able to accept only a group name, and no username.     #It will then create a placeholder that has no username, but a groupname.
+    #return(0, "add_group: no user name!") unless $username;  
+    if(defined $username) {
     return(0, "add_group: no group!") unless $groupname;
-    
     return(0, "user '$username' already exists in group '$groupname'") 
 	if $self->exists($groupname,$username);
 
-    my $statement = 
+    $statement = 
 	$self->{GROUPTABLE} ne $self->{USERTABLE} ?
-	    sprintf("INSERT into %s (%s,%s)\n VALUES ('%s','%s')\n",
-		    @{$self}{ qw(GROUPTABLE NAMEFIELD GROUPFIELD) },
-		    $username,$groupname) 
+	    sprintf("INSERT into %s (%s,%s)\n VALUES (?,?)\n",
+		    @{$self}{ qw(GROUPTABLE NAMEFIELD GROUPFIELD) })
 		:
-            sprintf("UPDATE %s\n SET %s='%s'\n WHERE %s='%s'\n",
-		    $self->{GROUPTABLE},$self->{GROUPFIELD},$groupname,
-		    $self->{NAMEFIELD},$username);
-		    
-    print STDERR $statement if $self->debug;
-    $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
-    1;
+            sprintf("UPDATE %s\n SET %s=?\n WHERE %s=?\n",
+		    $self->{GROUPTABLE},$self->{NAMEFIELD},
+		    $self->{GROUPFIELD});
+			    
+    #print STDERR $statement if $self->debug;
+    }
+    else {
+    	    return(0, "group already exists") if($self->exists($groupname));
+	    $statement = sprintf("INSERT into %s (%s)\n VALUES (?)\n",
+		    @{$self}{ qw(GROUPTABLE GROUPFIELD) })
+   };
+
+   my $sth = $self->{'_DBH'}->prepare($statement) || Carp::croak($DBI::errstr);
+   $sth->execute(@_) || Carp::croak($DBI::errstr);
 }
 
 sub exists {
     my ($self,$groupname,$username) = @_;
     return(0, "exists: no group!") unless $groupname;
-    my $select = "$self->{GROUPFIELD}='$groupname'";
-    $select = "$self->{GROUPFIELD} like '$groupname'"  if ($groupname =~ /%/);
-    $select .= " AND $self->{NAMEFIELD}='$username'" if defined $username;
+    my $select = "$self->{GROUPFIELD}=" . $self->{'_DBH'}->quote($groupname);
+    $select = "$self->{GROUPFIELD} like" . $self->{'_DBH'}->quote($groupname)  if ($groupname =~ /%/);
+    $select .= " AND $self->{NAMEFIELD}=" . $self->{'_DBH'}->quote($username) if defined $username;
     my $statement = 
 	sprintf("SELECT DISTINCT %s FROM %s WHERE %s",
 		@{$self}{qw(GROUPFIELD GROUPTABLE)},
@@ -108,10 +121,10 @@ sub delete {
     $groupname = $self->{NAME} unless defined $groupname;
     my $select = "$self->{NAMEFIELD}='$username' AND $self->{GROUPFIELD}='$groupname'" if defined $groupname;
     my $statement = 
-	sprintf("DELETE FROM %s WHERE %s = '%s' AND %s = '%s'",
+	sprintf("DELETE FROM %s WHERE %s = %s AND %s = %s",
 		$self->{GROUPTABLE},
-		$self->{NAMEFIELD},$username,
-		$self->{GROUPFIELD},$groupname);
+		$self->{NAMEFIELD},$self->('_DBH')->quote($username),
+		$self->{GROUPFIELD},$self->{'_DBH'}->quote($groupname));
     print STDERR $statement if $self->debug;
     my $rv = $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
     return $rv;
@@ -121,8 +134,8 @@ sub remove {
     my ($self,$groupname) = @_;
     return(0, "remove: no groupname!") unless defined $groupname;
     my $statement = 
-	sprintf("DELETE FROM %s WHERE %s = '%s'",
-		@{$self}{qw(GROUPTABLE GROUPFIELD)},$groupname);
+	sprintf("DELETE FROM %s WHERE %s = %s",
+		@{$self}{qw(GROUPTABLE GROUPFIELD)},$self->{'_DBH'}->quote($groupname));
     print STDERR $statement if $self->debug;
     my $rv = $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
     return $rv;

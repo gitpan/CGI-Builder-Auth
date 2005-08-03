@@ -111,9 +111,8 @@ package CGI::Builder::Auth::Group
    ; return if !$self->_exists($group)
 
    ; my $user_factory = CGI::Builder::Auth::User->new
-   
-   ; for my $user (@users)
-      { next unless $user_factory->_exists($user)
+   ; for my $user (@users) { 
+      next unless $user_factory->_exists($user)
       ; $self->_group_admin->add($user, $group)
       }
    ; 1

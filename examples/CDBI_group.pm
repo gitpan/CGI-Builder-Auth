@@ -39,7 +39,7 @@ sub add_member
 sub remove_member
    { my ($self,@users) = @_
    ; for my $user (@users)
-      { $self->user_links( user_id => $user )->delete
+      { $self->user_links( user_id => $user )->delete_all
       }
    ; return 1
    }

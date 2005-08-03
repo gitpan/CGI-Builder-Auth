@@ -21,13 +21,15 @@ sub new {
     my($class) = shift;
     my $self = bless { %Default, @_ } => $class;
     $self->_check(qw(DRIVER DB USERTABLE)); 
-    $self->db($self->{DB});	
+    if(!defined $self->{'DBH'}) { $self->db($self->{DB}) }
+    else { $self->{'_DBH'} = $self->{'DBH'}; };
     return $self;
 }
 
 sub DESTROY {
     my($self) = @_;
-    $self->{'_DBH'}->disconnect;
+    #Don't disconnect if you didn't make it.
+    $self->{'_DBH'}->disconnect if(!defined $self->{'DBH'});
 }
 
 sub db {
@@ -43,13 +45,11 @@ sub db {
     # LS 12/1/97 -- Be sure to use Msql-modules-1.1814 (at least).
     # Do NOT  use the older DBD-mSQL-0.65.
     # The connect() method changed.
-
     my $source = sprintf("dbi:%s:%s",@{$self}{qw(DRIVER DB)});
     $source .= ":$self->{HOST}" if $self->{HOST};
     $source .= ":$self->{PORT}" if $self->{HOST} and $self->{PORT};
     $self->{'_DBH'} = DBI->connect($source,@{$self}{qw(USER AUTH)} ) 
 	|| Carp::croak($DBI::errstr);
-
     return $old;
 }
 
@@ -77,7 +77,10 @@ sub add {
 	sprintf("INSERT into %s (%s)\n VALUES (%s)\n",
 		$self->{USERTABLE},
 		join(',',keys %f),
-		join(',', map {$self->_is_string($_,$f{$_}) ? "'$f{$_}'" : $f{$_} } keys %f));
+		join(',', map {$self->{'_DBH'}->quote($f{$_})} keys %f));
+#This _is_string this is silly.  It should be handled in the DBI::quote function.
+#Further, if you really want to do that, the fast way is to use Scalar::Util::Numeric
+		#join(',', map {$self->_is_string($_,$f{$_}) ? $self->{'_DBH'}->quote($f{$_}) : $f{$_} } keys %f));
 
     print STDERR $statement if $self->debug;
     $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
@@ -87,8 +90,8 @@ sub add {
 sub exists {
     my($self, $username) = @_;
     my $statement = 
-	sprintf("SELECT %s from %s WHERE %s='%s'\n",
-		@{$self}{qw(PASSWORDFIELD USERTABLE NAMEFIELD)}, $username);
+	sprintf("SELECT %s from %s WHERE %s=%s\n",
+		@{$self}{qw(PASSWORDFIELD USERTABLE NAMEFIELD)}, $self->{'_DBH'}->quote($username));
     print STDERR $statement if $self->debug;
     my $sth = $self->{'_DBH'}->prepare($statement);
     Carp::carp("Cannot prepare sth ($DBI::err): $DBI::errstr")
@@ -102,8 +105,8 @@ sub exists {
 sub delete {
     my($self, $username) = @_;
     my $statement = 
-	sprintf("DELETE from %s where %s='%s'\n",
-		@{$self}{qw(USERTABLE NAMEFIELD)}, $username);
+	sprintf("DELETE from %s where %s=%s\n",
+		@{$self}{qw(USERTABLE NAMEFIELD)}, $self->{'_DBH'}->quote($username));
     print STDERR $statement if $self->debug;
     $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
 }
@@ -126,7 +129,8 @@ sub update {
     my $statement = 
 	sprintf("UPDATE %s SET %s\n WHERE %s = '%s'\n",
 		$self->{USERTABLE},
-		join(',', map {$_ . "=" . ($self->_is_string($_,$f{$_}) ? "'$f{$_}'" : $f{$_}) } keys %f),
+		join(',', map {$_ . "=" . $self->{_DBH}->quote($f{$_}) } keys %f),
+		#join(',', map {$_ . "=" . ($self->_is_string($_,$f{$_}) ? "'$f{$_}'" : $f{$_}) } keys %f),
 		$self->{NAMEFIELD}, $username);
     print STDERR $statement if $self->debug;
     $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
@@ -161,10 +165,10 @@ sub fetch {
     }
     push (@f,'*') unless @f;
     my $statement = 
-	sprintf("SELECT %s FROM %s WHERE %s = '%s'",
+	sprintf("SELECT %s FROM %s WHERE %s = %s",
 		join(',',@f),
 		@{$self}{qw/USERTABLE NAMEFIELD/},
-		$username);
+		$self->{'_DBH'}->quote($username));
     print STDERR $statement if $self->debug;
     my $sth = $self->{'_DBH'}->prepare($statement);
     Carp::carp("Cannot prepare sth ($DBI::err): $DBI::errstr")
@@ -175,39 +179,40 @@ sub fetch {
     return $result;
 }
 
-sub _is_string {
-    my ($self,$field_name,$field_value) = @_;
-    if ($self->{DRIVER} =~ /^msql$/i) {
-	unless ($self->{'_TYPES'}) {
-	    require Msql;
-	    my $st = $self->{'_DBH'}->prepare("LISTFIELDS $self->{USERTABLE}") 
-		|| Carp::croak($DBI::errstr);
-	    $st->execute || Carp::croak($DBI::errstr);
-	    my $types = $st->{msql_type};
-	    foreach (@{$st->{NAME}}) {
-		$self->{'_TYPES'}->{$_} = Msql::CHAR_TYPE() eq (shift @{$types});
-	    }
-	    $st->finish();
-	}
-	return $self->{'_TYPES'}->{$field_name};
-    } else {
-	return $field_value !~ /^[0-9.E-]+$/i;
-    }
-}
+#sub _is_string {
+#    my ($self,$field_name,$field_value) = @_;
+#    if ($self->{DRIVER} =~ /^msql$/i) {
+#	unless ($self->{'_TYPES'}) {
+#	    require Msql;
+#	    my $st = $self->{'_DBH'}->prepare("LISTFIELDS $self->{USERTABLE}") 
+#		|| Carp::croak($DBI::errstr);
+#	    $st->execute || Carp::croak($DBI::errstr);
+#	    my $types = $st->{msql_type};
+#	    foreach (@{$st->{NAME}}) {
+#		$self->{'_TYPES'}->{$_} = Msql::CHAR_TYPE() eq (shift @{$types});
+#	    }
+#	    $st->finish();
+#	}
+#	return $self->{'_TYPES'}->{$field_name};
+#    } else {
+#	return $field_value !~ /^[0-9.E-]+$/i;
+#    }
+#}
 
 sub encrypt {
     my($self) = shift; 
     my($passwd) = "";
     my($scheme) = $self->{ENCRYPT} || "crypt";
     # not quite sure where we're at risk here...
+    # I am.  SQL injection is possible the previous way if crypt is ever broken.  -Rusty Phillips
     # $_[0] =~ /^[^<>;|]+$/ or Carp::croak("Bad password name"); $_[0] = $&;
     if (($self->{DRIVER} =~ /^mysql$/i) && ($scheme =~ /^MySQL(:?-Password)?$/i)) {
-        my $statement = sprintf("SELECT password('%s')\n", $_[0]);
+        my $statement = "SELECT password(?)\n";
         print STDERR $statement if $self->debug;
         my $sth = $self->{'_DBH'}->prepare($statement);
         Carp::carp("Cannot prepare sth ($DBI::err): $DBI::errstr")
 	    unless $sth;
-        $sth->execute || Carp::croak($DBI::errstr);
+        $sth->execute($_[0]) || Carp::croak($DBI::errstr);
         my(@row) = $sth->fetchrow;
         $sth->finish;
         $passwd = $row[0];
